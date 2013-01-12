@@ -1,0 +1,17 @@
+# git ignore file
+
+# emacs backup files 
+# (how do you specify a filename starting with # ?!)
+*~
+*#
+
+# python
+__pycache__
+*.pyc
+
+# various other generated files
+*.o
+
+
+
+
