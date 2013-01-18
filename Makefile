@@ -4,16 +4,16 @@
 #
 ##################################################################
 
-OUTPUT=output.py
+OUTPUT=output-meta-ii-python-object.py
 
-default: tmp.txt
+default: $(OUTPUT)
 
-tmp.txt: meta-ii-my-version.txt trial.py meta2defs.py
-	./trial.py < meta-ii-my-version.txt > $(OUTPUT)
+$(OUTPUT): meta-ii-python-source.txt meta-ii-python-object.py meta2defs.py
+	./meta-ii-python-object.py < meta-ii-python-source.txt > $(OUTPUT)
 	chmod +x $(OUTPUT)
 
-check: tmp.txt trial.py
-	diff tmp.txt trial.py
+check: meta-ii-python-object.py $(OUTPUT)
+	diff meta-ii-python-object.py $(OUTPUT)
 
 clean:
 	rm -f $(OUTPUT) *~
