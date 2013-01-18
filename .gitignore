@@ -1,5 +1,8 @@
 # git ignore file
 
+# specific files for this project
+output.py
+
 # emacs backup files 
 # (how do you specify a filename starting with # ?!)
 *~
