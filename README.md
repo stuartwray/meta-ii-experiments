@@ -12,5 +12,7 @@ in his extended version he regenerates that compiler as javascript. This
 is what runs the examples in the interactive "Metacompiler Workshop" on his
 website.
 
+Files:
 
+neighbors-* files are for Neigbors reordered Meta-II.
 
