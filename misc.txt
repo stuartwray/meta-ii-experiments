@@ -1,0 +1,80 @@
+AEXP example
+
+fern:=5+6;
+ace:=fern*5;
+waldo:=fern+alpha/-beta^gamma;
+
+AEXP compiled
+
+	address fern
+	literal 5
+	literal 6
+	add
+	store
+	address ace
+	load fern
+	literal 5
+	mpy
+	store
+	address waldo
+	load fern
+	load alpha
+	load beta
+	minus
+	load gamma
+	exp
+	div
+	add
+	store
+
+AEXP grammar
+
+.SYNTAX AEXP
+
+AEXP = AS $AS .,
+AS = .ID .OUT('address ' *) ':=' EX1 .OUT('store') ';' .,
+EX1 = EX2 $('+' EX2 .OUT('add') /
+            '-' EX2 .OUT('sub') ) .,
+EX2 = EX3 $('*' EX3 .OUT('mpy') /
+            '/' EX3 .OUT('div') ) .,
+EX3 = EX4 $('^' EX3 .OUT('exp')) .,
+EX4 = '+' EX5 / '-' EX5 .OUT('minus') / EX5 .,
+EX5 = .ID  .OUT('load ' *) /
+      .NUMBER .OUT('literal ' *) /
+      '(' EX1 ')' .,
+
+.END
+
+Original META-II code
+
+.SYNTAX PROGRAM
+
+OUT1 = '*1' .OUT('GN1') / '*2' .OUT('GN2') /
+'*' .OUT('CI') / .STRING .OUT('CL '*).,
+
+OUTPUT = ('.OUT' '('$OUT1 ')' /
+          '.LABEL' .OUT('LB') OUT1)
+         .OUT('OUT') .,
+
+EX3 = .ID .OUT('CLL '*) / .STRING
+.OUT('TST '*) / '.ID' .OUT('ID') /
+'.NUMBER' .OUT('NUM') /
+'.STRING' .OUT('SR') / '(' EX1 ')' /
+'.EMPTY' .OUT('SET') /
+'$' .LABEL *1 EX3
+.OUT('BT ' *1) .OUT('SET').,
+
+EX2 = (EX3 .OUT('BF ' *1) / OUTPUT)
+$(EX3 .OUT('BE') / OUTPUT)
+.LABEL *1 .,
+
+EX1 = EX2 $('/' .OUT('BT ' *1) EX2 )
+.LABEL *1 .,
+
+ST = .ID .LABEL * '=' EX1
+'.,' .OUT('R').,
+
+PROGRAM = '.SYNTAX' .ID .OUT('ADR ' *)
+$ ST '.END' .OUT('END').,
+
+.END
