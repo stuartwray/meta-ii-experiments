@@ -31,23 +31,21 @@ def error(*args):
     sys.exit(1)
 
 LABELS = {}
-def prepare(program):
-    for i in range(len(program)):
-        it = program[i]
-        if isinstance(it, str):                
-            LABELS[it] = i + 1
+def label(s, value):
+    LABELS[s] = value
 
 def lookup(s):
     if s in LABELS:
         return LABELS[s]
     else:
         error("+++ No such label:", s)
-            
-def execute(program, NAME):
+
+# This list is filled in right at the end, with a sequence
+# of [function, argument] lists
+PROGRAM = []
+def execute(NAME):
     global PC
     global INPUT
-
-    prepare(program)
         
     fin = sys.stdin
     INPUT = fin.read()
@@ -56,15 +54,10 @@ def execute(program, NAME):
     STACK.append([None, None, None, NAME])
 
     while True:
-        instruction = program[PC]
+        instruction = PROGRAM[PC]
         PC += 1
-        if isinstance(instruction, str):
-            # actually a label, so do nothing
-            pass
-        else:
-            fun, args = instruction[0], instruction[1:]
-            fun(*args)
-
+        fun, args = instruction[0], instruction[1:]
+        fun(*args)
 
 #--------------------------------------------------------
 # Parsing machine instructions
@@ -465,24 +458,29 @@ L39
 	END
 """
 #-------------------------------------------------------
-# After the "assembler" instructions, decode that and run
+# After the "assembler" instructions, decode all that and run
 
+# It may seem a little inconsistent to use a regexp here after spending
+# so much time avoiding them earlier, but really this is part of the
+# grammar "object code" loader, not really part of the runtime.
 RE_instruction = re.compile(r"\s+([A-Z]+\d?)\s*(.*)")
-PROG = []
 funs = globals()
 
 for line in PROG_TEXT.split("\n"):
     mob = RE_instruction.match(line)
     if mob:
         # Instruction
-        if mob.group(2):
-            PROG.append([funs[mob.group(1)], mob.group(2).strip("'")])
-            if mob.group(1) == "ADR":
-                NAME = mob.group(2).strip("'")
+        instr = mob.group(1)
+        data  = mob.group(2).strip("'")
+        if data:
+            PROGRAM.append([funs[instr], data])
+            if instr == "ADR":
+                NAME = data
         else:
-            PROG.append([funs[mob.group(1)]]) 
+            PROGRAM.append([funs[instr]]) 
     elif len(line) > 0:
-        # label
-        PROG.append(line.strip())
+        # Label
+        #PROG.append(line.strip())
+        label(line.strip(), len(PROGRAM))
         
-execute(PROG, NAME)
+execute(NAME)
