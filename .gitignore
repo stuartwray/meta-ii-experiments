@@ -1,12 +1,10 @@
 # git ignore file
 
 # specific files for this project
-output*
 
 # emacs backup files 
-# (how do you specify a filename starting with # ?!)
+\#*#
 *~
-*#
 
 # python
 __pycache__

@@ -4,39 +4,14 @@
 #
 ##################################################################
 
-TMPne=./tmp-neighbors-meta-ii-compiler.py
-TMPS=$(TMPne)
+default: meta-ii-object.txt
 
-OUTPUTne=output-neighbors-meta-ii-reordered-object.txt
-OUTPUTpy=output-meta-ii-python-object.py
-OUTPUTS=$(OUTPUTpy) $(OUTPUTne)
+meta-ii-object.txt: meta-ii-compiler.py meta-ii-grammar.txt
+	./meta-ii-compiler.py < meta-ii-grammar.txt > meta-ii-object.txt
 
-default: $(OUTPUTS)
-
-$(OUTPUTne): neversion
-neversion: neighbors-meta-ii-reordered-source.txt \
-		   neighbors-meta-ii-reordered-object.txt\
-           neighbors-meta-ii-runtime-header.py \
-           neighbors-meta-ii-runtime-trailer.py
-	cat neighbors-meta-ii-runtime-header.py > $(TMPne)
-#	echo '"""' >> $(TMPne)
-#	cat neighbors-meta-ii-reordered-object.txt >> $(TMPne)
-#	echo '"""' >> $(TMPne)
-#	cat neighbors-meta-ii-runtime-trailer.py >> $(TMPne)
-	chmod +x  $(TMPne)
-	$(TMPne) < neighbors-meta-ii-reordered-source.txt > $(OUTPUTne)
-
-netest: neighbors-meta-ii-reordered-object.txt $(OUTPUTne)
-	diff neighbors-meta-ii-reordered-object.txt $(OUTPUTne)
-
-$(OUTPUTpy): pyversion
-pyversion: meta-ii-python-source.txt meta-ii-python-object.py meta2defs.py
-	./meta-ii-python-object.py < meta-ii-python-source.txt > $(OUTPUTpy)
-	chmod +x $(OUTPUTpy)
-
-pytest: meta-ii-python-object.py $(OUTPUTpy)
-	diff meta-ii-python-object.py $(OUTPUTpy)
+test: meta-ii-object.txt
+	diff meta-ii-object.txt meta-ii-object.txt.good 
 
 clean:
-	rm -f $(OUTPUTS)  $(TMPS) *~
+	rm -f meta-ii-object.txt *~
 
