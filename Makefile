@@ -8,11 +8,21 @@ default: new-meta-ii-compiler.py
 
 new-meta-ii-compiler.py: meta-ii-compiler.py meta-ii-grammar.txt
 	./meta-ii-compiler.py meta-ii-grammar.txt 
-	chmod +x new-meta-ii-compiler.py
 
 test: new-meta-ii-compiler.py
 	diff new-meta-ii-compiler.py  meta-ii-compiler.py 
 
+# Example compiler using the AEXP grammar & runtime
+
+aexp-compiler.py: aexp-grammar.txt meta-ii-compiler.py
+	./meta-ii-compiler.py aexp-grammar.txt 
+
+aexp-example-object.py: aexp-compiler.py aexp-example-source.txt aexp-runtime.txt
+	./aexp-compiler.py aexp-example-source.txt
+
+test-aexp: aexp-example-object.py
+	./aexp-example-object.py
+
 clean:
-	rm -f new-meta-ii-compiler.py *~
+	rm -f new-meta-ii-compiler.py aexp-compiler.py aexp-example-object.py *~ 
 

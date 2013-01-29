@@ -23,24 +23,38 @@ if len(sys.argv) == 1:
     error("Usage: <name>-grammar.txt")
 
 INPUT_name = sys.argv[1]
-RE_file_name = re.compile(r"(.*)-grammar.txt")
-mob = RE_file_name.match(INPUT_name)
+RE_grammar_file = re.compile(r"(.*)-grammar.txt")
+mob = RE_grammar_file.match(INPUT_name)
 if not mob:
-    error("+++ Grammar file name must end with '-grammar.txt'")
+    error("+++ Grammar file name must be called <name>-grammar.txt")
+out_base = mob.group(1)
 
-basename = mob.group(1)
-OUTPUT_name = "new-" + basename + "-compiler.py"
-RUNTIME_name = basename + "-runtime.py"
-if not os.path.exists(RUNTIME_name) and basename == "meta-ii":
-    # special case: we will use this program as the runtime source file
-    RUNTIME_name = sys.argv[0]
+if out_base == "meta-ii":
+    # special case: don't overwrite the original compiler
+    OUTPUT_name = "new-" + out_base + "-compiler.py"
+else:
+    OUTPUT_name = out_base + "-compiler.py"
+
+myname = os.path.basename(sys.argv[0])
+RE_compiler_file = re.compile(r"(.*)-compiler.py")
+mob = RE_compiler_file.match(myname)
+if not mob:
+    error("+++ Compiler executable must be called <name>-compiler.py")
+runtime_base = mob.group(1)
+
+if runtime_base == "meta-ii":
+    # special case: we will use *this* program as the source of the runtime
+    RUNTIME_name = myname
+else:
+    RUNTIME_name = runtime_base + "-runtime.py"
 
 #--------------------------------------------------------
 # Global variables holding input file contents
 
 with open(INPUT_name) as fin:
     INPUT = fin.read()
-    
+
+# split_list :: Regexp -> List[String] -> List[List[String]]
 def split_list(pat, xs):
     result = []
     part = []
@@ -538,6 +552,12 @@ with open(OUTPUT_name, "w") as fout:
     fout.writelines(OUTPUT_list)
     fout.write('"""\n')
     fout.writelines(RUNTIME_TRAILER_list)
+
+# And finally make that executatble
+
+import stat
+mode = os.stat(OUTPUT_name).st_mode 
+os.chmod(OUTPUT_name, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
     
