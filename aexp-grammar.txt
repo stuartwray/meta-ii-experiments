@@ -1,0 +1,15 @@
+.SYNTAX AEXP
+
+AEXP = AS $AS .,
+AS = .ID .OUT('ADDRESS ' *) ':=' EX1 .OUT('STORE') ';' .,
+EX1 = EX2 $('+' EX2 .OUT('ADD') /
+            '-' EX2 .OUT('SUB') ) .,
+EX2 = EX3 $('*' EX3 .OUT('MUL') /
+            '/' EX3 .OUT('DIV') ) .,
+EX3 = EX4 $('^' EX3 .OUT('EXP')) .,
+EX4 = '+' EX5 / '-' EX5 .OUT('NEG') / EX5 .,
+EX5 = .ID  .OUT('LOAD ' *) /
+      .NUMBER .OUT('LITERAL ' *) /
+      '(' EX1 ')' .,
+
+.END

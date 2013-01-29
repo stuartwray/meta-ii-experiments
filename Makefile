@@ -17,8 +17,8 @@ test: new-meta-ii-compiler.py
 aexp-compiler.py: aexp-grammar.txt meta-ii-compiler.py
 	./meta-ii-compiler.py aexp-grammar.txt 
 
-aexp-example-object.py: aexp-compiler.py aexp-example-source.txt aexp-runtime.txt
-	./aexp-compiler.py aexp-example-source.txt
+aexp-example-object.py: aexp-compiler.py aexp-example.txt aexp-runtime.py
+	./aexp-compiler.py aexp-example.txt
 
 test-aexp: aexp-example-object.py
 	./aexp-example-object.py

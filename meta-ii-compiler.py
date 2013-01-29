@@ -17,36 +17,47 @@ def error(*args):
     sys.exit(1)
 
 #--------------------------------------------------------
-# Parse argument, get filenames straight
-
-if len(sys.argv) == 1:
-    error("Usage: <name>-grammar.txt")
-
-INPUT_name = sys.argv[1]
-RE_grammar_file = re.compile(r"(.*)-grammar.txt")
-mob = RE_grammar_file.match(INPUT_name)
-if not mob:
-    error("+++ Grammar file name must be called <name>-grammar.txt")
-out_base = mob.group(1)
-
-if out_base == "meta-ii":
-    # special case: don't overwrite the original compiler
-    OUTPUT_name = "new-" + out_base + "-compiler.py"
-else:
-    OUTPUT_name = out_base + "-compiler.py"
+# Parse command-line arguments, get filenames straight
 
 myname = os.path.basename(sys.argv[0])
-RE_compiler_file = re.compile(r"(.*)-compiler.py")
-mob = RE_compiler_file.match(myname)
-if not mob:
-    error("+++ Compiler executable must be called <name>-compiler.py")
-runtime_base = mob.group(1)
+if myname == "meta-ii-compiler.py":
+    if len(sys.argv) == 1:
+        error("Usage: <name>-grammar.txt")
+    
+    # special case: meta-ii can use *this* program as the runtime
+    RUNTIME_name = myname        
+    
+    INPUT_name = sys.argv[1]
+    RE_grammar_file = re.compile(r"(.*)-grammar.txt")
+    mob = RE_grammar_file.match(INPUT_name)
+    if not mob:
+        error("+++ input file must be called <name>-grammar.txt")
+    out_base = mob.group(1)
 
-if runtime_base == "meta-ii":
-    # special case: we will use *this* program as the source of the runtime
-    RUNTIME_name = myname
+    if out_base == "meta-ii":
+        # special case: don't overwrite the original compiler
+        OUTPUT_name = "new-" + out_base + "-compiler.py"
+    else:
+        OUTPUT_name = out_base + "-compiler.py"
 else:
+    # We are a compiler for some other language
+    if len(sys.argv) == 1:
+        error("Usage: <source>.txt")
+
+    RE_compiler_file = re.compile(r"(.*)-compiler.py")
+    mob = RE_compiler_file.match(myname)
+    if not mob:
+        error("+++ Compiler executable must be called <name>-compiler.py")
+    runtime_base = mob.group(1)
     RUNTIME_name = runtime_base + "-runtime.py"
+
+    INPUT_name = sys.argv[1]
+    RE_source_file = re.compile(r"(.*).txt")
+    mob = RE_source_file.match(INPUT_name)
+    if not mob:
+        error("+++ Source file must be called <source>.txt")
+    out_base = mob.group(1)
+    OUTPUT_name = out_base + "-object.py"
 
 #--------------------------------------------------------
 # Global variables holding input file contents
@@ -84,9 +95,9 @@ OUTPUT_line = "\t" # start set to col 8 (bizzare 1960s I/O)
 OUTPUT_list = []
 
 PC = 0
+STACK = []
 SWITCH = False
 TOKEN = ""
-STACK = []
 LABEL_counter = 1
 
 #--------------------------------------------------------
@@ -104,11 +115,13 @@ def lookup(s):
 
 # execute :: String -> List[(function, argument)] -> None
 def execute(name, program):
-    global PC
+    global PC, STACK, SWITCH, TOKEN, LABEL_counter
     PC = 0
-
     # label1, label2, return addr, rule-name
-    STACK.append([None, None, None, name])
+    STACK = [[None, None, None, name]]
+    SWITCH = False
+    TOKEN = ""
+    LABEL_counter = 1
 
     while PC != None:
         instruction = program[PC]
@@ -120,15 +133,18 @@ def execute(name, program):
 # Parsing machine instructions
 
 # Note that I am trying hard here to avoid using regexps.
+# (So as to demonstrate that this part can be implemented on a
+# runtime with no regexps.)
 # The tokenisation stuff gets taken care of using a few more
-# instructions in a later version of the metacompiler.
+# instructions in a later version of Neighbors' metacompiler.
 
 def TST(s):
     global INPUT_position
     global SWITCH
     
     # skip initial whitespace
-    while INPUT[INPUT_position] in string.whitespace:
+    while INPUT_position < len(INPUT) and \
+              INPUT[INPUT_position] in string.whitespace:
         INPUT_position += 1
 
     # try match string s
@@ -145,19 +161,22 @@ def ID():
     global SWITCH
     
     # skip initial whitespace
-    while INPUT[INPUT_position] in string.whitespace:
+    while INPUT_position < len(INPUT) and \
+              INPUT[INPUT_position] in string.whitespace:
         INPUT_position += 1
 
     # try match identifier
-    if INPUT[INPUT_position] in string.ascii_lowercase or \
-       INPUT[INPUT_position] in string.ascii_uppercase:
+    if INPUT_position < len(INPUT) and \
+           (INPUT[INPUT_position] in string.ascii_lowercase or \
+            INPUT[INPUT_position] in string.ascii_uppercase):
         TOKEN = INPUT[INPUT_position]
         INPUT_position += 1
         SWITCH = True
         
-        while INPUT[INPUT_position] in string.ascii_lowercase or \
-              INPUT[INPUT_position] in string.ascii_uppercase or \
-              INPUT[INPUT_position] in string.digits:
+        while INPUT_position < len(INPUT) and \
+                (INPUT[INPUT_position] in string.ascii_lowercase or \
+                 INPUT[INPUT_position] in string.ascii_uppercase or \
+                 INPUT[INPUT_position] in string.digits):
             TOKEN += INPUT[INPUT_position]
             INPUT_position += 1
     else:
@@ -169,16 +188,19 @@ def NUM():
     global SWITCH
     
     # skip initial whitespace
-    while INPUT[INPUT_position] in string.whitespace:
+    while INPUT_position < len(INPUT) and \
+            INPUT[INPUT_position] in string.whitespace:
         INPUT_position += 1
 
     # try match number
-    if INPUT[INPUT_position] in string.digits:
+    if INPUT_position < len(INPUT) and \
+            INPUT[INPUT_position] in string.digits:
         TOKEN = INPUT[INPUT_position]
         INPUT_position += 1
         SWITCH = True
         
-        while INPUT[INPUT_position] in string.digits:
+        while INPUT_position < len(INPUT) and \
+                INPUT[INPUT_position] in string.digits:
             TOKEN += INPUT[INPUT_position]
             INPUT_position += 1
     else:
@@ -190,22 +212,29 @@ def SR():
     global SWITCH
     
     # skip initial whitespace
-    while INPUT[INPUT_position] in string.whitespace:
+    while INPUT_position < len(INPUT) and \
+            INPUT[INPUT_position] in string.whitespace:
         INPUT_position += 1
 
     # try match single-quoted string
-    if INPUT[INPUT_position] == "'":
+    if INPUT_position < len(INPUT) and \
+            INPUT[INPUT_position] == "'":
         TOKEN = INPUT[INPUT_position]
         INPUT_position += 1
-        SWITCH = True
         
-        while INPUT[INPUT_position] != "'":
+        while INPUT_position < len(INPUT) and \
+                INPUT[INPUT_position] != "'":
             TOKEN += INPUT[INPUT_position]
             INPUT_position += 1
 
-        # this is the closing quote
-        TOKEN += INPUT[INPUT_position]
-        INPUT_position += 1
+        if INPUT_position < len(INPUT):
+            # this is the closing quote
+            TOKEN += INPUT[INPUT_position]
+            INPUT_position += 1
+            SWITCH = True
+        else:
+            # ran out of characters in input before closing quote
+            SWITCH = FALSE            
     else:
         SWITCH = False
 
@@ -536,7 +565,6 @@ for line in PROG_TEXT.split("\n"):
             PROGRAM.append([funs[instr]]) 
     elif len(line) > 0:
         # Label
-        #PROG.append(line.strip())
         label(line.strip(), len(PROGRAM))
 
 # We already have output date in in RUNTIME_HEADER_list
