@@ -4,14 +4,15 @@
 #
 ##################################################################
 
-default: meta-ii-object.txt
+default: new-meta-ii-compiler.py
 
-meta-ii-object.txt: meta-ii-compiler.py meta-ii-grammar.txt
-	./meta-ii-compiler.py < meta-ii-grammar.txt > meta-ii-object.txt
+new-meta-ii-compiler.py: meta-ii-compiler.py meta-ii-grammar.txt
+	./meta-ii-compiler.py meta-ii-grammar.txt 
+	chmod +x new-meta-ii-compiler.py
 
-test: meta-ii-object.txt
-	diff meta-ii-object.txt meta-ii-object.txt.good 
+test: new-meta-ii-compiler.py
+	diff new-meta-ii-compiler.py  meta-ii-compiler.py 
 
 clean:
-	rm -f meta-ii-object.txt *~
+	rm -f new-meta-ii-compiler.py *~
 

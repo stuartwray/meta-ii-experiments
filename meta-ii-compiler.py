@@ -3,6 +3,7 @@
 import sys
 import string
 import re
+import os
 
 # Meta-compiler supporting machine, based on a tutorial/website by
 # James M. Neighbors: "Tutorial: Metacompilers Part 1" (2008). This was
@@ -10,12 +11,63 @@ import re
 # Compiler Writing Language" (1964).
 
 #--------------------------------------------------------
-# Global variables
 
-INPUT = None
+def error(*args):
+    print(*args)
+    sys.exit(1)
+
+#--------------------------------------------------------
+# Parse argument, get filenames straight
+
+if len(sys.argv) == 1:
+    error("Usage: <name>-grammar.txt")
+
+INPUT_name = sys.argv[1]
+RE_file_name = re.compile(r"(.*)-grammar.txt")
+mob = RE_file_name.match(INPUT_name)
+if not mob:
+    error("+++ Grammar file name must end with '-grammar.txt'")
+
+basename = mob.group(1)
+OUTPUT_name = "new-" + basename + "-compiler.py"
+RUNTIME_name = basename + "-runtime.py"
+if not os.path.exists(RUNTIME_name) and basename == "meta-ii":
+    # special case: we will use this program as the runtime source file
+    RUNTIME_name = sys.argv[0]
+
+#--------------------------------------------------------
+# Global variables holding input file contents
+
+with open(INPUT_name) as fin:
+    INPUT = fin.read()
+    
+def split_list(pat, xs):
+    result = []
+    part = []
+    for x in xs:
+        if pat.match(x):
+            result.append(part)
+            part = []
+        else:
+            part.append(x)
+    if part != []:
+        result.append(part)
+    return result
+      
+with open(RUNTIME_name) as fin:
+    RE_triple_quote = re.compile(r'^"""')
+    runtime = split_list(RE_triple_quote, fin.readlines())
+    if len(runtime) != 3:
+        print(runtime)
+        error("+++ Check the format of your runtime. (Too many triple-quotes.)")
+    RUNTIME_HEADER_list, _, RUNTIME_TRAILER_list = runtime
+    
+# Other global variables
+
 INPUT_position = 0
 
 OUTPUT_line = "\t" # start set to col 8 (bizzare 1960s I/O)
+OUTPUT_list = []
 
 PC = 0
 SWITCH = False
@@ -25,10 +77,6 @@ LABEL_counter = 1
 
 #--------------------------------------------------------
 # Supporting functions
-
-def error(*args):
-    print(*args)
-    sys.exit(1)
 
 LABELS = {}
 def label(s, value):
@@ -40,21 +88,16 @@ def lookup(s):
     else:
         error("+++ No such label:", s)
 
-# This list is filled in right at the end, with a sequence
-# of [function, argument] lists
-PROGRAM = []
-def execute(NAME):
+# execute :: String -> List[(function, argument)] -> None
+def execute(name, program):
     global PC
-    global INPUT
-        
-    fin = sys.stdin
-    INPUT = fin.read()
+    PC = 0
 
     # label1, label2, return addr, rule-name
-    STACK.append([None, None, None, NAME])
+    STACK.append([None, None, None, name])
 
-    while True:
-        instruction = PROGRAM[PC]
+    while PC != None:
+        instruction = program[PC]
         PC += 1
         fun, args = instruction[0], instruction[1:]
         fun(*args)
@@ -161,8 +204,6 @@ def CLL(rule):
 def R():
     global PC
     _, _, PC, _ = STACK.pop()
-    if PC == None:
-        END()
     
 def SET():
     global SWITCH
@@ -233,13 +274,12 @@ def LB():
 
 def OUT():
     global OUTPUT_line
-    print(OUTPUT_line)
+    OUTPUT_list.append(OUTPUT_line + "\n")
     # set ouput buffer to col 8 (bizzare 1960s I/O)
     OUTPUT_line = "\t" 
 
 def END():
-    sys.stdout.flush()
-    sys.exit(0)
+    PC = None # halt interpreter
 
 #-------------------------------------------------------
 # The "assembler" instuctions go here
@@ -466,6 +506,8 @@ L39
 RE_instruction = re.compile(r"\s+([A-Z]+\d?)\s*(.*)")
 funs = globals()
 
+PROGRAM = []
+
 for line in PROG_TEXT.split("\n"):
     mob = RE_instruction.match(line)
     if mob:
@@ -482,5 +524,20 @@ for line in PROG_TEXT.split("\n"):
         # Label
         #PROG.append(line.strip())
         label(line.strip(), len(PROGRAM))
+
+# We already have output date in in RUNTIME_HEADER_list
+# and RUNTIME_TRAILER_list, and now ...
         
-execute(NAME)
+execute(NAME, PROGRAM)
+
+# ... we also have the "assembler code" in OUTPUT_list. So put it all together:
+
+with open(OUTPUT_name, "w") as fout:
+    fout.writelines(RUNTIME_HEADER_list)
+    fout.write('"""\n')
+    fout.writelines(OUTPUT_list)
+    fout.write('"""\n')
+    fout.writelines(RUNTIME_TRAILER_list)
+
+
+    
