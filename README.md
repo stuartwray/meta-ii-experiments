@@ -3,7 +3,7 @@ meta-ii-experiments
 
 Building on META-II by Schorre and further developments by Neighbors.
 
-See "Meta-II: A Syntax-Oriented Compiler Writing Language" D. V. Schorre
+See "Meta-II: A Syntax-Oriented Compiler Writing Language" by D. V. Schorre
 and "Tutorial: Metacompilers Part 1" by James M. Neighbors.
 
 The default 'make' target generates a new version of the python Meta-II
@@ -23,6 +23,6 @@ for a simple language of arithmetic expressions and variable assignments.
 (This is very similar to and example in Neighbors' tutorial.) It then
 runs *that* compiler on an example program 'axep-example.txt' to produce a
 program 'aexp-example-object.py'. Then finally it runs *that* program and 
-shows you can see the output.
+shows you the output.
 
 
